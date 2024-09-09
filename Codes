@@ -1,6 +1,7 @@
 # Load required libraries for spatial data manipulation and visualization
 library(raster)
 library(rasterVis)
+library(ggplot2)
 
 # Define the path to the input CSV file containing the grid data
 path_file = "C:/Users/USER/Desktop/Co-suitability/Africa_grid_5km.csv"
@@ -116,3 +117,44 @@ IFuzzy = cbind(tabela, IFuzzy)
 
 # Write the final results to a CSV file
 write.csv(IFuzzy, "C:/Users/USER/Desktop/Co-suitability/Data_modelling/suitability.csv")
+# Here you can plots the final mebership functions thand can form the I fuzzy
+
+# Create data for Brachiaria membership function
+brachiaria <- data.frame(
+  suitability = seq(0, 1, length.out = 100),
+  membership = ifelse(seq(0, 1, length.out = 100) <= 0.1, 0,
+                      ifelse(seq(0, 1, length.out = 100) < 0.6, 0.75, 1))
+)
+
+# Create data for Desmodium membership function
+desmodium <- data.frame(
+  suitability = seq(0, 1, length.out = 100),
+  membership = ifelse(seq(0, 1, length.out = 100) <= 0.1, 0,
+                      ifelse(seq(0, 1, length.out = 100) < 0.6, 0.75, 1))
+)
+
+# Create data for Livestock membership function
+livestock <- data.frame(
+  density = seq(0, 15, length.out = 100),
+  membership = ifelse(seq(0, 15, length.out = 100) <= 5, 1,
+                      ifelse(seq(0, 15, length.out = 100) <= 13, 0.75, 0))
+)
+
+# Plot Brachiaria membership function
+ggplot(brachiaria, aes(x = suitability, y = membership)) +
+  geom_line(size = 1) +
+  labs(title = "Brachiaria membership function", x = "Brachiaria suitability score", y = "Membership value (μ(Bra))") +
+  theme_minimal()
+
+# Plot Desmodium membership function
+ggplot(desmodium, aes(x = suitability, y = membership)) +
+  geom_line(size = 1) +
+  labs(title = "Desmodium membership function", x = "Desmodium suitability score", y = "Membership value (μ(Des))") +
+  theme_minimal()
+
+# Plot Livestock membership function
+ggplot(livestock, aes(x = density, y = membership)) +
+  geom_line(size = 1) +
+  labs(title = "Livestock membership function", x = "Livestock density", y = "Membership value (μ(Livestock))") +
+  theme_minimal()
+
