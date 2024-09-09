@@ -1,0 +1,118 @@
+# Load required libraries for spatial data manipulation and visualization
+library(raster)
+library(rasterVis)
+
+# Define the path to the input CSV file containing the grid data
+path_file = "C:/Users/USER/Desktop/Co-suitability/Africa_grid_5km.csv"
+
+# Read the CSV file into a dataframe
+df <- read.csv(path_file)
+
+# View the dataframe to check the contents
+df
+
+# Create 'lon' and 'lat' columns by averaging the bounding box coordinates for each grid cell
+df['lon'] <- (df$left + df$right) / 2  # Calculate longitude
+df['lat'] <- (df$top + df$bottom) / 2  # Calculate latitude
+
+# View the updated dataframe
+df
+
+# Keep only the 'lat' and 'lon' columns for spatial extraction
+df = df[6:7]
+df1 = df  # Backup the dataframe
+
+# Optional: Write the updated dataframe to a new CSV (commented out here)
+# write.csv(df,"C:/Users/USER/Desktop/Co-suitability/Africa_Grid_5km_vrai_2.csv")
+
+# Define the dataframe as spatial points using the 'lat' and 'lon' columns
+coordinates(df1) = ~ lat + lon
+
+# Define the path to the directory with all the .tif raster files (e.g., NDVI data)
+NDVI_HARV_path1 <- "C:/Users/USER/Desktop/Co-suitability/Data_modelling/"
+
+# List all .tif files in the directory
+all_NDVI_HARV1 <- list.files(NDVI_HARV_path1, full.names = TRUE, pattern = ".tif$")
+
+# Stack the listed raster files into a single raster object
+NDVI_HARV_stack1 <- stack(all_NDVI_HARV1)
+
+# Optional: You can use the line below to plot the raster stack (commented out here)
+# plot(NDVI_HARV_stack1)
+
+# Extract the raster values at the spatial points in 'df1'
+DF1 = extract(NDVI_HARV_stack1, df1)
+
+# Replace any missing values (NA) in the extracted data with 0.1
+DF1[is.na(DF1)] = 0.1
+
+# Combine the original dataframe 'df' with the extracted raster data
+data <- cbind(df, DF1)
+
+# Optional: Write the combined data to a CSV file (commented out here)
+# write.csv(data,"C:/Users/USER/Desktop/Co-suitability/My_data_good.csv")
+
+# Load the data into 'tabela' for further processing
+tabela <- data
+
+# Display summary statistics of the data
+summary(tabela)
+
+# Initialize a vector to store fuzzy index calculations
+size <- length(tabela$Brachiaria)
+IFuzzy <- rep(0, size)
+
+# Loop through each row to calculate the fuzzy index based on Brachiaria, Desmodium, and Livestock values
+for(i in 1:size) {
+  
+  # Read the Brachiaria value for the current position
+  B <- tabela$Brachiaria[i]
+  
+  # Read the Desmodium value for the current position
+  D <- tabela$Desmodium_intortum_Urb[i]
+  
+  # Read the livestock value for the current position
+  L <- tabela$Livestotock[i]
+  
+  # Fuzzy membership function for Brachiaria
+  if (B <= 0.1) {
+    ITD = 0.25
+  } else if (B >= 0.1 & B < 0.6) {
+    ITD = 0.75
+  } else if (B >= 0.6 & B <= 1) {
+    ITD = 1
+  } else if (B < 0) {
+    ITD = 0.05
+  }
+  
+  # Fuzzy membership function for Desmodium
+  if (D <= 0.1) {
+    IRHD = 0.50
+  } else if (D >= 0.06905 & D < 0.6) {
+    IRHD = 0.75
+  } else if (D >= 0.6 & D <= 1) {
+    IRHD = 1
+  } else if (D < 0.05) {
+    IRHD = 0.05
+  }
+  
+  # Fuzzy membership function for Livestock
+  if (L <= 13) {
+    ITT = 1
+  } else if (L >= 5 & L < 13) {
+    ITT = 0.75
+  } else if (L >= 1 & L < 5) {
+    ITT = 1
+  } else if (L > 13) {
+    ITT = 0.50
+  }
+  
+  # Calculate the fuzzy index as a product of the fuzzy membership values
+  IFuzzy[i] = ITD * IRHD * ITT
+}
+
+# Combine the fuzzy index results with the original data
+IFuzzy = cbind(tabela, IFuzzy)
+
+# Write the final results to a CSV file
+write.csv(IFuzzy, "C:/Users/USER/Desktop/Co-suitability/Data_modelling/suitability.csv")
